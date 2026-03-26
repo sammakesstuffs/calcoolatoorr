@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>calcooltoorr v1.6767</title>
+    <style>
+        :root {
+            --bg-color: #ffffff; 
+            --calc-bg: #f0f0f0;
+            --text-color: #000000;
+            --display-bg: #e0e0e0;
+            --display-text: #000000;
+            --btn-bg: #dcdcdc;
+            --btn-text: #000000;
+        }
+
+        .dark-theme {
+            --bg-color: #1e1e24; --calc-bg: #2b2d42; --text-color: #ffffff;
+            --display-bg: #8d99ae; --display-text: #2b2d42;
+            --btn-bg: #edf2f4; --btn-text: #2b2d42;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Segoe UI', Tahoma, sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; background-color: var(--bg-color); margin: 0;
+            color: var(--text-color); overflow: hidden; transition: 0.5s;
+        }
+
+        .container { position: relative; }
+
+        .brand-title {
+            text-align: center; font-size: 0.9rem; font-weight: bold;
+            color: #888; margin-bottom: 5px; letter-spacing: 2px;
+        }
+
+        .hud {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-weight: bold; font-size: 1.2rem;
+        }
+
+        .coins-text { color: #fca311; }
+        
+        .theme-btn {
+            background: #3a86ff; color: white; border: none; 
+            padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+
+        .calculator {
+            background-color: var(--calc-bg); padding: 20px;
+            border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 300px; position: relative; transition: 0.5s;
+        }
+
+        .display {
+            background-color: var(--display-bg); color: var(--display-text);
+            font-size: 2.5rem; text-align: right; padding: 15px;
+            border-radius: 10px; margin-bottom: 20px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); min-height: 45px; transition: 0.5s;
+        }
+
+        .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+        button {
+            background-color: var(--btn-bg); border: none; padding: 15px 10px;
+            font-size: 1.5rem; border-radius: 10px; cursor: pointer;
+            color: var(--btn-text); transition: 0.1s; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        button:active { transform: scale(0.95); }
+        .operator { background-color: #fca311; color: white; font-size: 1.2rem; }
+        .operator span { font-size: 0.7rem; font-weight: bold; margin-top: 2px; }
+        .equals { background-color: #ef233c; color: white; grid-column: span 2; font-size: 1.2rem;}
+        .equals span { font-size: 0.7rem; font-weight: bold; margin-top: 2px; }
+        .clear { background-color: #d90429; color: white; grid-column: span 2; }
+        .locked-btn { background-color: #555; color: #888; border: 2px dashed #fca311; }
+
+        /* Modals */
+        .modal {
+            display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.95); color: white; border-radius: 15px;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px; z-index: 10; backdrop-filter: blur(5px);
+        }
+
+        .modal h2 { color: #ef233c; margin-top: 0; font-size: 1.4rem; }
+        .modal p { font-size: 0.9rem; margin-bottom: 15px; }
+
+        .buy-btn {
+            background: linear-gradient(45deg, #fca311, #ef233c);
+            color: white; border: none; padding: 15px; width: 100%;
+            border-radius: 8px; font-size: 1.1rem; font-weight: bold;
+            cursor: pointer; margin-bottom: 10px; display: block;
+        }
+
+        .close-btn { background: none; color: #8d99ae; margin-top: 5px; cursor: pointer; border: none; font-size: 0.9rem;}
+        
+        .ad-container { width: 100%; background: #000; border-radius: 8px; margin-bottom: 10px; overflow: hidden; min-height: 150px; display: flex; align-items: center; justify-content: center;}
+        video { width: 100%; height: auto; outline: none; pointer-events: none; } 
+        .timer-text { font-weight: bold; color: #fca311; margin-bottom: 10px; }
+        #claim-reward-btn { display: none; background: #3a86ff; }
+
+        /* Payment Gateway Form */
+        .cc-input {
+            width: 90%; padding: 10px; margin-bottom: 10px;
+            border-radius: 5px; border: 1px solid #ccc; font-size: 1rem;
+            text-align: center; background: #fff; color: #000; font-family: monospace;
+        }
+        .cc-row { display: flex; justify-content: space-between; width: 95%; margin-bottom: 15px; }
+        .cc-row input { width: 45%; }
+        #decline-msg { color: #ef233c; font-weight: bold; display: none; margin-bottom: 10px; font-size: 0.9rem; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="brand-title">calcooltoorr v1.6767</div>
+    <div class="hud">
+        <span class="coins-text">©oins: <span id="coin-count">0</span></span>
+        <button class="theme-btn" onclick="attemptDarkMode()">🌙 Dark</button>
+    </div>
+    
+    <div class="calculator">
+        <div class="display" id="display"></div>
+        <div class="keypad">
+            <button class="clear" onclick="clearDisplay()">C</button>
+            <button class="operator" onclick="attemptOperator('/')">/<span>(2©)</span></button>
+            <button class="operator" onclick="attemptOperator('*')">*<span>(2©)</span></button>
+            
+            <button id="btn-7" class="locked-btn" onclick="attemptSeven()">🔒</button>
+            <button onclick="appendValue('8')">8</button>
+            <button onclick="appendValue('9')">9</button>
+            <button class="operator" onclick="attemptOperator('-')">-<span>(2©)</span></button>
+            
+            <button onclick="appendValue('4')">4</button>
+            <button onclick="appendValue('5')">5</button>
+            <button onclick="appendValue('6')">6</button>
+            <button class="operator" onclick="attemptOperator('+')">+<span>(2©)</span></button>
+            
+            <button onclick="appendValue('1')">1</button>
+            <button onclick="appendValue('2')">2</button>
+            <button onclick="appendValue('3')">3</button>
+            <button class="equals" onclick="attemptCalculate()">=<span>(5©)</span></button>
+            
+            <button onclick="appendValue('0')" style="grid-column: span 2;">0</button>
+            <button onclick="appendValue('.')">.</button>
+        </div>
+
+        <div class="modal" id="paywall">
+            <h2 id="paywall-title">⚠️ Out of ©oins!</h2>
+            <p id="paywall-desc">Math is a privilege, not a right.</p>
+            <button class="buy-btn" onclick="openPaymentGateway('coins')">© 50 ©oins ($67.67)</button>
+            <button class="buy-btn" style="background: linear-gradient(45deg, #8338ec, #3a86ff);" onclick="openPaymentGateway('sub')">💎 Calc+ ($15.99/mo)</button>
+            <button class="buy-btn" style="background: #ff5400;" onclick="attemptEarnCoin()">📺 Watch 3 Ads (Earn 1 ©oin)</button>
+            <button class="close-btn" onclick="closePaywall()">Cancel (lose calculation)</button>
+        </div>
+
+        <div class="modal" id="theme-wall">
+            <h2 style="color: #3a86ff;">🌙 Premium Feature</h2>
+            <p>Unlock Dark Mode forever!</p>
+            <button class="buy-btn" style="background: #1e1e24; border: 2px solid #3a86ff;" onclick="openPaymentGateway('dark')">🖤 Buy ($5.99)</button>
+            <button class="close-btn" onclick="closeThemeWall()">No thanks, I love eye strain</button>
+        </div>
+
+        <div class="modal" id="payment-gateway">
+            <h2 style="color: #4cc9f0; font-size: 1.2rem;">🔒 Secure Checkout</h2>
+            <p style="font-size: 0.8rem;">Powered by calcooltoorr billing</p>
+            <p id="decline-msg">❌ DECLINED: Insufficient Funds. Try again.</p>
+            
+            <input type="text" class="cc-input" id="cc-num" placeholder="0000 0000 0000 0000" maxlength="16">
+            <div class="cc-row">
+                <input type="text" class="cc-input" id="cc-exp" placeholder="MM/YY" maxlength="5">
+                <input type="text" class="cc-input" id="cc-cvv" placeholder="CVV" maxlength="3">
+            </div>
+            <button class="buy-btn" style="background: #06d6a0;" onclick="processPayment()">Submit Payment</button>
+            <button class="close-btn" onclick="closePaymentGateway()">Cancel Transaction</button>
+        </div>
+
+        <div class="modal" id="ad-wall">
+            <h2 style="color: #fca311;" id="ad-title">Sponsor Message</h2>
+            <p style="margin-bottom: 5px;" id="ad-subtitle">Please watch to continue.</p>
+            <div class="ad-container">
+                <video id="ad-video" playsinline></video>
+                <div id="ad-fallback" style="display:none; color: #ef233c; font-weight: bold; text-align: center; padding: 20px;">
+                    Ad failed to load.<br>Imposing 15s penalty wait...
+                </div>
+            </div>
+            <div class="timer-text" id="ad-timer">Loading Ad...</div>
+            <button class="buy-btn" id="claim-reward-btn" onclick="finishAdSequence()">Continue</button>
+        </div>
+
+        <div class="modal" id="rate-wall">
+            <h2 style="color: #fca311;">⭐ Rate Us ⭐</h2>
+            <button class="buy-btn" style="background: #3a86ff;" onclick="closeRateWall()">⭐⭐⭐⭐⭐ Rate 5 Stars</button>
+            <button class="close-btn" onclick="closeRateWall()">Remind me later</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentInput = '';
+    let coins = 0; 
+    let hasSubscription = false;
+    let sevenUnlocked = false;
+    let darkModeUnlocked = false;
+    let pendingItemToBuy = ''; 
+
+    let adMode = ''; 
+    let currentAdIndex = 1;
+    let totalAdsToPlay = 1;
+    let adFallbackTimer = null;
+
+    // IMPORTANT: Make sure these exactly match the files in your folder
+    const adFiles = ['ad1.mp4', 'ad2.mp4', 'ad3.mp4']; 
+
+    const display = document.getElementById('display');
+    const coinCounter = document.getElementById('coin-count');
+    const paywall = document.getElementById('paywall');
+    const paywallTitle = document.getElementById('paywall-title');
+    const paywallDesc = document.getElementById('paywall-desc');
+    const themeWall = document.getElementById('theme-wall');
+    const paymentGateway = document.getElementById('payment-gateway');
+    const declineMsg = document.getElementById('decline-msg');
+    const adWall = document.getElementById('ad-wall');
+    const claimBtn = document.getElementById('claim-reward-btn');
+    const adTitle = document.getElementById('ad-title');
+    const adVideo = document.getElementById('ad-video');
+    const adFallback = document.getElementById('ad-fallback');
+    const adTimerText = document.getElementById('ad-timer');
+
+    // --- RANDOM POP-UP ADS LOGIC ---
+    // Triggers every 60 seconds unless they bought a subscription
+    setInterval(() => {
+        if (hasSubscription) return; // Premium users are spared
+        
+        // Don't interrupt if they are already dealing with a modal/ad
+        if (adWall.style.display === 'flex' || paywall.style.display === 'flex' || paymentGateway.style.display === 'flex') return;
+
+        adTitle.innerText = "Random Sponsor Break!";
+        document.getElementById('ad-subtitle').innerText = "We'll return you to your math shortly.";
+        triggerAds('random-popup', 1);
+    }, 60000); 
+
+    function appendValue(val) { currentInput += val; display.innerText = currentInput; }
+    function clearDisplay() { currentInput = ''; display.innerText = ''; }
+
+    // --- OPERATOR MICROTRANSACTION LOGIC ---
+    function attemptOperator(op) {
+        if (hasSubscription) {
+            appendValue(op);
+        } else if (coins >= 2) {
+            coins -= 2;
+            updateHUD();
+            appendValue(op);
+        } else {
+            paywallTitle.innerText = "⚠️ Operator Locked!";
+            paywallDesc.innerText = "Using an operator (+, -, *, /) costs 2 ©oins.";
+            paywall.style.display = 'flex';
+        }
+    }
+
+    // --- PAYMENT GATEWAY ---
+    function openPaymentGateway(item) {
+        paywall.style.display = 'none'; themeWall.style.display = 'none';
+        pendingItemToBuy = item; declineMsg.style.display = 'none';
+        document.getElementById('cc-num').value = ''; document.getElementById('cc-exp').value = ''; document.getElementById('cc-cvv').value = '';
+        paymentGateway.style.display = 'flex';
+    }
+
+    function processPayment() {
+        const ccNum = document.getElementById('cc-num').value;
+        if(ccNum.length < 16) {
+            declineMsg.innerText = "❌ ERROR: Invalid Card Length."; declineMsg.style.display = 'block'; return;
+        }
+
+        // 50% chance to fail
+        if (Math.random() < 0.5) {
+            const errors = ["Insufficient Funds.", "Bank flagged as fraud.", "Zip code mismatch.", "Server error, try again."];
+            declineMsg.innerText = "❌ DECLINED: " + errors[Math.floor(Math.random() * errors.length)];
+            declineMsg.style.display = 'block'; document.getElementById('cc-cvv').value = ''; return;
+        }
+
+        paymentGateway.style.display = 'none'; alert("Payment Processed Successfully!");
+        if (pendingItemToBuy === 'coins') { coins += 50; }
+        else if (pendingItemToBuy === 'sub') { 
+            hasSubscription = true; 
+            if(!sevenUnlocked) {sevenUnlocked=true; document.getElementById('btn-7').className=''; document.getElementById('btn-7').innerHTML='7';} 
+            if(!darkModeUnlocked) buyDarkMode(true); 
+        }
+        else if (pendingItemToBuy === 'dark') { buyDarkMode(true); }
+        updateHUD();
+    }
+
+    function closePaymentGateway() {
+        paymentGateway.style.display = 'none';
+        if (pendingItemToBuy === 'coins' && coins < 2) clearDisplay();
+    }
+
+    function buyDarkMode(skipGateway = false) {
+        darkModeUnlocked = true; document.body.classList.add('dark-theme');
+        document.querySelector('.theme-btn').innerText = "🌙 Toggle Dark"; themeWall.style.display = 'none';
+    }
+    function attemptDarkMode() { darkModeUnlocked ? document.body.classList.toggle('dark-theme') : themeWall.style.display = 'flex'; }
+    function closeThemeWall() { themeWall.style.display = 'none'; }
+
+
+    // --- MULTI-AD LOGIC & ERROR HANDLING ---
+    function attemptSeven() {
+        if (hasSubscription || sevenUnlocked) appendValue('7');
+        else triggerAds('seven', 1);
+    }
+
+    function attemptCalculate() {
+        if (currentInput === '') return;
+        if (hasSubscription) { calculate(); }
+        else if (coins >= 5) { 
+            coins -= 5; updateHUD(); 
+            triggerAds('calc', 2); // 2 Ads per calculation!
+        }
+        else { 
+            paywallTitle.innerText = "⚠️ Out of ©oins!";
+            paywallDesc.innerText = "Calculating the answer costs 5 ©oins.";
+            paywall.style.display = 'flex'; 
+        }
+    }
+
+    function attemptEarnCoin() {
+        paywall.style.display = 'none';
+        triggerAds('earn-coin', 3); // 3 ads for 1 coin
+    }
+
+    function triggerAds(mode, count) {
+        adMode = mode; totalAdsToPlay = count; currentAdIndex = 1;
+        adWall.style.display = 'flex'; claimBtn.style.display = 'none';
+        
+        // Reset subtitles for standard ads
+        if (mode !== 'random-popup') {
+            document.getElementById('ad-subtitle').innerText = "Please watch to continue.";
+        }
+        
+        playNextAd();
+    }
+
+    function playNextAd() {
+        clearInterval(adFallbackTimer);
+        adVideo.style.display = 'block';
+        adFallback.style.display = 'none';
+        
+        if (adMode !== 'random-popup') {
+            adTitle.innerText = `Sponsor Message (${currentAdIndex} of ${totalAdsToPlay})`;
+        }
+        
+        adTimerText.style.display = 'block';
+        adTimerText.innerText = "Loading Ad...";
+        
+        const randomAd = adFiles[Math.floor(Math.random() * adFiles.length)];
+        adVideo.src = randomAd;
+        
+        // Success Path
+        adVideo.onloadedmetadata = () => { adVideo.play().catch(e => triggerErrorPenalty()); };
+        
+        adVideo.ontimeupdate = () => {
+            let timeLeft = Math.ceil(adVideo.duration - adVideo.currentTime);
+            if (!isNaN(timeLeft)) adTimerText.innerText = `Ad ${currentAdIndex}/${totalAdsToPlay} finishes in: ${timeLeft}s`;
+        };
+        
+        adVideo.onended = () => { handleAdCompletion(); };
+
+        // Error Path
+        adVideo.onerror = () => { triggerErrorPenalty(); };
+    }
+
+    function triggerErrorPenalty() {
+        adVideo.style.display = 'none';
+        adFallback.style.display = 'block';
+        let penaltyTime = 15;
+        
+        adTimerText.innerText = `Penalty wait: ${penaltyTime}s`;
+        
+        adFallbackTimer = setInterval(() => {
+            penaltyTime--;
+            adTimerText.innerText = `Penalty wait: ${penaltyTime}s`;
+            if (penaltyTime <= 0) {
+                clearInterval(adFallbackTimer);
+                handleAdCompletion();
+            }
+        }, 1000);
+    }
+
+    function handleAdCompletion() {
+        if (currentAdIndex < totalAdsToPlay) {
+            currentAdIndex++;
+            playNextAd(); 
+        } else {
+            adTimerText.style.display = 'none';
+            claimBtn.style.display = 'block';
+        }
+    }
+
+    function finishAdSequence() {
+        adWall.style.display = 'none';
+        if (adMode === 'seven') {
+            sevenUnlocked = true; document.getElementById('btn-7').className = '';
+            document.getElementById('btn-7').innerHTML = '7'; appendValue('7'); 
+        } else if (adMode === 'calc') {
+            calculate(); 
+        } else if (adMode === 'earn-coin') {
+            coins += 1;
+            updateHUD();
+            alert(`You earned 1 ©oin! Current Balance: ${coins}©.`);
+        } else if (adMode === 'random-popup') {
+            // Do nothing, just let them return to their math
+            alert("Thanks for watching! Buy Calc+ to remove interruptions.");
+        }
+    }
+
+    // --- CORE LOGIC ---
+    function calculate() {
+        try {
+            let result = eval(currentInput); display.innerText = result; currentInput = result.toString();
+            setTimeout(() => { document.getElementById('rate-wall').style.display = 'flex'; }, 800);
+        } catch (e) { display.innerText = 'Error'; currentInput = ''; }
+    }
+
+    function updateHUD() {
+        if (hasSubscription) { 
+            coinCounter.innerText = "∞ (Calc+)"; 
+            document.querySelectorAll('.operator span, .equals span').forEach(el => el.style.display = 'none');
+        }
+        else { coinCounter.innerText = coins; }
+    }
+
+    function closePaywall() { paywall.style.display = 'none'; if (!hasSubscription && coins < 2) clearDisplay(); }
+    function closeRateWall() { document.getElementById('rate-wall').style.display = 'none'; }
+</script>
+
+</body>
+</html>
